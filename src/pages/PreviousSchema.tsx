@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { TrashIcon, Pencil1Icon, CheckIcon, Cross1Icon } from "@radix-ui/react-icons";
-import { Textarea } from "../components/ui/textarea";
+import { TrashIcon, Pencil1Icon } from "@radix-ui/react-icons";
 import { Input } from "../components/ui/input";
 import { Link } from 'react-router-dom';
+import SchemaEditor from '../components/SchemaEditor';
+
+type FieldType = 'nested' | 'string' | 'number' | 'boolean' | 'objectId' | 'float';
+
+type Field = {
+  key: string;
+  type: FieldType;
+  nestedFields?: Field[];
+  locked?: boolean;
+};
 
 type SavedSchema = {
   id: string;
@@ -12,11 +21,40 @@ type SavedSchema = {
   schema: Record<string, any>;
 };
 
+function convertSchemaToFields(schema: Record<string, any>): Field[] {
+  return Object.entries(schema).map(([key, value]) => {
+    if (typeof value === "object" && !Array.isArray(value) && value !== null) {
+      return {
+        key,
+        type: "nested",
+        nestedFields: convertSchemaToFields(value),
+      };
+    } else {
+      return {
+        key,
+        type: typeof value === 'string' ? (value as FieldType) : 'string',
+      };
+    }
+  });
+}
+
+function buildSchema(fieldsList: Field[]): any {
+  const result: any = {};
+  for (const field of fieldsList) {
+    if (!field.key) continue;
+    if (field.type === "nested") {
+      result[field.key] = buildSchema(field.nestedFields || []);
+    } else {
+      result[field.key] = field.type;
+    }
+  }
+  return result;
+}
+
 export default function SavedSchemas() {
   const [schemas, setSchemas] = useState<SavedSchema[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState('');
-  const [editedSchema, setEditedSchema] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('savedSchemas');
@@ -37,97 +75,83 @@ export default function SavedSchemas() {
   const startEdit = (schema: SavedSchema) => {
     setEditId(schema.id);
     setEditedTitle(schema.title);
-    setEditedSchema(JSON.stringify(schema.schema, null, 2));
   };
 
-  const cancelEdit = () => {
+  const saveEdit = (updatedFields: Field[]) => {
+    const newSchemaObj = buildSchema(updatedFields);
+    const updated = schemas.map(s =>
+      s.id === editId ? { ...s, title: editedTitle, schema: newSchemaObj } : s
+    );
+    setSchemas(updated);
+    localStorage.setItem('savedSchemas', JSON.stringify(updated));
     setEditId(null);
-    setEditedTitle('');
-    setEditedSchema('');
-  };
-
-  const saveEdit = (id: string) => {
-    try {
-      const parseddata = JSON.parse(editedSchema);
-      const updated = schemas.map(s =>
-        s.id === id ? { ...s, title: editedTitle, schema: parseddata } : s
-      );
-      setSchemas(updated);
-      localStorage.setItem('savedSchemas', JSON.stringify(updated));
-      cancelEdit();
-    } catch (err) {
-      alert("Invalid JSON in schema!");
-    }
   };
 
   return (
     <>
-      <h1 className="text-2xl text-center text-white bg-blue-500 p-7 max-w-full mt-0 font-bold">Saved Schemas</h1>
+      <h1 className="text-2xl text-center text-white bg-blue-500 p-7 max-w-full mt-0 font-bold">
+        Saved Schemas
+      </h1>
+
       <div className="max-w-6xl mx-auto mt-5 space-y-6">
         {schemas.length === 0 ? (
-          <p className="text-gray-500 border-4">No schemas saved.</p>
+          <p className="text-gray-500 border-4 p-4 text-center">No schemas saved.</p>
         ) : (
           schemas.map((s) => (
             <Card key={s.id} className="p-4 bg-gray-50">
               <div className="flex justify-between items-center mb-2">
                 {editId === s.id ? (
                   <Input
-                    className="font-semibold"
+                    className="font-semibold flex-grow mr-4"
                     value={editedTitle}
                     onChange={(e) => setEditedTitle(e.target.value)}
+                    placeholder="Schema Title"
                   />
                 ) : (
-                  <h2 className="text-md font-semibold">{s.title}</h2>
-                      )}
-                      
-            <div className="flex items-center space-x-2 ">
-                {editId === s.id ? (
-                  <>
-                    <Button size="icon" variant="ghost" className='hover:bg-blue-500 hover:text-white m-2 shadow-md border-black' onClick={() => saveEdit(s.id)} aria-label="Save">
-                      <CheckIcon className="w-4 h-4 " />
-                    </Button>
-                    <Button size="icon" variant="ghost" className='hover:bg-blue-500 hover:text-white shadow-md border-black m-2' onClick={cancelEdit} aria-label="Cancel">
-                      <Cross1Icon className="w-4 h-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <>
+                  <h2 className="text-md font-semibold flex-grow">{s.title}</h2>
+                )}
+
+                {editId !== s.id && (
+                  <div className="flex items-center space-x-2">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => startEdit(s)}
-                      className="flex items-center border-red border-2  text-green-700 hover:bg-blue-500 hover:text-white gap-1"
+                      className="flex items-center text-green-700 hover:bg-blue-500 hover:text-white gap-1"
                     >
-                      <Pencil1Icon className="w-4 h-4 " />
+                      <Pencil1Icon className="w-4 h-4" />
                       Edit
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="flex items-center gap-1 border-2 border-red text-red-500 hover:bg-blue-500 hover:text-white"
+                      className="flex items-center gap-1 text-red-500 hover:bg-blue-500 hover:text-white"
                       onClick={() => deleteSchema(s.id)}
                     >
                       <TrashIcon className="w-4 h-4" />
                       Delete
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
-            </div>
-                  
-              <Textarea
-                className="font-mono text-sm"
-                readOnly={editId !== s.id}
-                rows={10}
-                value={editId === s.id ? editedSchema : JSON.stringify(s.schema, null, 2)}
-                onChange={(e) => setEditedSchema(e.target.value)}
-              />
-              </Card>
-            ))
+
+              {editId === s.id ? (
+                <SchemaEditor
+                  initialFields={convertSchemaToFields(s.schema)}
+                  onSave={saveEdit}
+                  onCancel={() => setEditId(null)}
+                />
+              ) : (
+                <pre className="font-mono text-sm max-h-72 overflow-auto p-2 bg-white rounded border border-gray-300">
+                  {JSON.stringify(s.schema, null, 2)}
+                </pre>
               )}
-              
+            </Card>
+          ))
+        )}
+
         <Link to="/">
-          <Button className="bg-blue-500 hover:bg-blue-600 m-2">
+          <Button className="bg-blue-500 hover:bg-blue-600 m-2 text-white">
             Back
           </Button>
         </Link>

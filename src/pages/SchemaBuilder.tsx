@@ -141,7 +141,7 @@ export default function SchemaBuilder() {
         </div>
 
         {field.type === 'nested' && (
-          <div className=" w-full border-l-3 border-blue-300">
+          <div className=" w-full pt-4 border-l-3 border-blue-300">
             {field.nestedFields?.map((nested, index) =>
               renderField(nested, [...path, index])
             )}
@@ -164,25 +164,34 @@ export default function SchemaBuilder() {
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const schemaData = buildSchema(fields);
-    const savedSchemas = localStorage.getItem('savedSchemas');
-    const savedArray = savedSchemas ? JSON.parse(savedSchemas) : [];
-
-    const newSchema = {
-      title: title,
-        id: new Date().toISOString(),
-      schema: schemaData,
-    };
-
-     const index = savedArray.findIndex((item: any) => item.title === title);
-    if (index !== -1) {
-        savedArray[index] = newSchema;
-    } else {
-      savedArray.push(newSchema);
+    if (!title.trim()) {
+      window.alert('Schema title is required.');
+      return;
+    }
+    if (Object.keys(schemaData).length === 0) {
+      window.alert('At least one field with a name is required.');
+      return;
+    }
+    const savedSchemasRaw = localStorage.getItem('savedSchemas');
+    const savedArray = savedSchemasRaw ? JSON.parse(savedSchemasRaw) : [];
+    const duplicate = savedArray.some((s: any) => s.title === title);
+  
+    if (duplicate) {
+      window.alert(`A schema with the title "${title}" already exists.`);
+      return;
     }
 
+    const newSchema = {
+      title: title.trim(),
+      id: new Date().toISOString(),
+      schema: schemaData,
+    };
+    savedArray.push(newSchema);
     localStorage.setItem('savedSchemas', JSON.stringify(savedArray));
-    window.alert(`Schema "${title}" saved successfully!`);
+  
+    window.alert(`Schema "${newSchema.title}" saved successfully!`);
   }
+  
 
   const liveSchema = buildSchema(fields);
 
@@ -192,7 +201,7 @@ export default function SchemaBuilder() {
 
       <form onSubmit={handleSubmit} className="max-w-6xl mx-auto mt-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6">
+          <Card className="p-5">
             <div>
               <h1 className="text-center  font-bold ">Schema Title</h1>
               <Input
@@ -203,7 +212,7 @@ export default function SchemaBuilder() {
                 className="mt-2"/>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-2 space-y-3">
               {fields.map((field, index) => renderField(field, [index]))}
             </div>
 
