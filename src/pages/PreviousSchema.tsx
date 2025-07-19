@@ -6,7 +6,8 @@ import { Textarea } from "../components/ui/textarea";
 import { Link } from 'react-router-dom';
 
 type SavedSchema = {
-  id: string;
+    id: string;
+    title:string,
   schema: Record<string, any>;
 };
 
