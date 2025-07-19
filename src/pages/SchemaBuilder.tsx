@@ -3,9 +3,11 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { TrashIcon, PlusIcon } from "@radix-ui/react-icons";
+import { PlusIcon, Cross1Icon } from "@radix-ui/react-icons";
 import { Textarea } from "../components/ui/textarea";
 import { Link } from 'react-router-dom';
+import { Switch} from "../components/ui/switch";
+
 
 type FieldType = 'nested' | 'string' | 'number' | 'boolean' | 'objectId' | 'float';
 
@@ -14,6 +16,7 @@ type Field = {
   key: string;
   type: FieldType;
   nestedFields?: Field[];
+  locked?: boolean;
 };
 
 
@@ -77,22 +80,35 @@ export default function SchemaBuilder() {
     return result;
   }
 
+  function toggleLockField(path: number[]) {
+    const copy = JSON.parse(JSON.stringify(fields));
+    let current = copy;
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current[path[i]].nestedFields!;
+    }
+    const index = path[path.length - 1];
+    current[index].locked = !current[index].locked;
+    setFields(copy);
+  }
+  
 
   function renderField(field: Field, path: number[]) {
     return (
-      <div key={path.join('-')} className="mb-4 p-4 border rounded-lg bg-gray-50">
+      <div key={path.join('-')} className="mb-4 pl-4">
       <div className="flex items-center gap-2 mb-2">
         <div className="w-1/2">
           <Input
             placeholder="Field name"
-            value={field.key}
+              value={field.key}
+              disabled={field.locked}
             onChange={(e) => updateField(path, { key: e.target.value })}
           />
         </div>
 
         <div className="w-1/2">
           <Select
-            value={field.type}
+              value={field.type}
+              disabled={field.locked}
             onValueChange={(val) => updateField(path, { type: val as FieldType })}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Field Type" />
@@ -107,6 +123,12 @@ export default function SchemaBuilder() {
           </Select>
           </div>
           
+         <Switch
+            checked={field.locked}
+            onCheckedChange={() => toggleLockField(path)}
+            className="data-[state=unchecked]:bg-gray-300 data-[state=checked]:bg-orange-300"
+          />
+
           <Button
             type="button"
             variant="ghost"
@@ -114,25 +136,26 @@ export default function SchemaBuilder() {
             onClick={() => removeField(path)}
             className="text-red-500"
           >
-            <TrashIcon />
+            <Cross1Icon className='size-5' />
           </Button>
         </div>
 
         {field.type === 'nested' && (
-          <div className="mt-3 pl-4 border-l-2 border-blue-200">
-             {field.nestedFields?.map((nested, index) =>
+          <div className=" w-full border-l-3 border-blue-300">
+            {field.nestedFields?.map((nested, index) =>
               renderField(nested, [...path, index])
             )}
             <Button
               type="button"
-               onClick={() => addField(path)}
+              onClick={() => addField(path)}
               className="w-full bg-blue-500 text-white hover:bg-blue-600"
             >
               <PlusIcon className="mr-1" />
-               Add Nested Field
+              Add Field
             </Button>
           </div>
         )}
+
       </div>
     );
   }
