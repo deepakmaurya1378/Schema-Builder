@@ -81,20 +81,21 @@ export default function SchemaBuilder() {
   function renderField(field: Field, path: number[]) {
     return (
       <div key={path.join('-')} className="mb-4 p-4 border rounded-lg bg-gray-50">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-1/2">
           <Input
-            placeholder="Field key"
+            placeholder="Field name"
             value={field.key}
             onChange={(e) => updateField(path, { key: e.target.value })}
-            className="flex-1"
           />
+        </div>
 
+        <div className="w-1/2">
           <Select
             value={field.type}
-            onValueChange={(val) => updateField(path, { type: val as FieldType })}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="Type" />
+            onValueChange={(val) => updateField(path, { type: val as FieldType })}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Field Type" />
             </SelectTrigger>
             <SelectContent>
               {['string', 'number', 'boolean', 'objectId', 'float', 'nested'].map((typeOption) => (
@@ -104,7 +105,8 @@ export default function SchemaBuilder() {
               ))}
             </SelectContent>
           </Select>
-
+          </div>
+          
           <Button
             type="button"
             variant="ghost"
@@ -175,8 +177,7 @@ export default function SchemaBuilder() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter schema title"
-                className="mt-2"
-              />
+                className="mt-2"/>
             </div>
 
             <div className="mt-4 space-y-3">
