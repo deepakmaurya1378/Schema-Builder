@@ -58,7 +58,7 @@ export default function SavedSchemas() {
              </Card>)))}
                 
                 <Link to="/">
-                <Button className="bg-blue-500 m-2">
+                <Button className="bg-blue-500 hover:bg-blue-600 m-2">
                 Back 
                 </Button>
                 </Link>
