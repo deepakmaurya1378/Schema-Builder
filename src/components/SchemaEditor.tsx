@@ -71,7 +71,6 @@ export default function SchemaEditor({ initialFields = [], onSave, onCancel }: P
             <Input
               placeholder="Field name"
               value={field.key}
-              disabled={field.locked}
               onChange={(e) => updateField(path, { key: e.target.value })}
             />
           </div>
@@ -79,7 +78,6 @@ export default function SchemaEditor({ initialFields = [], onSave, onCancel }: P
           <div className="w-1/2">
             <Select
               value={field.type}
-              disabled={field.locked}
               onValueChange={(val) => updateField(path, { type: val as FieldType })}
             >
               <SelectTrigger className="w-full">
